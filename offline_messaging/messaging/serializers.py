@@ -12,7 +12,7 @@ class RegisterSerializer(serializers.HyperlinkedModelSerializer):
     confirm_password = serializers.CharField(style={'input_type': 'password'}, write_only=True)
 
     class Meta:
-        model = User  # ???Account
+        model = User
         fields = ['username', 'first_name', 'last_name', 'password', 'confirm_password']
         extra_kwargs = {
             'password': {'write_only': True}
