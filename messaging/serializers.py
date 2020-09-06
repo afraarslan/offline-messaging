@@ -9,6 +9,8 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 class UserMessageSerializer(serializers.ModelSerializer):
+    messageId = MessageSerializer()
+
     class Meta:
         model = UserMessage
         fields = ("id", "messageId", "fromId", "toId", "is_deleted")

@@ -8,5 +8,5 @@ class ProfileAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Message, ProfileAdmin)
-admin.site.register(UserMessage, ProfileAdmin)
+admin.site.register(UserMessage)
 
