@@ -2,7 +2,8 @@ from django.urls import path
 from rest_framework import routers
 from . import views
 
-router = routers.DefaultRouter()
-router.register(r'get_messages', views.UserMessageViewSet, basename='getUserMessages')
-# router.register(r'send', views.MessageViewSet)
-urlpatterns = router.urls
+urlpatterns = [
+    path('get_inbox/', views.get_inbox_messages, name='get_inbox'),
+    path('get_outbox/', views.get_sent_messages, name='get_outbox'),
+    path('send/', views.send_message, name='send'),
+]
