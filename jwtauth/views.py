@@ -1,11 +1,14 @@
 from django.shortcuts import render
-from django.contrib.auth import get_user_model
-from rest_framework import response, decorators, permissions, status
+from rest_framework import response, decorators, permissions, status, serializers
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.models import User
+
+from messaging.views import IsOwner
+from .models import UserBlacklist
 from .serializers import UserCreateSerializer
 
+
 # Create your views here.
-User = get_user_model()
 
 
 @decorators.api_view(["POST"])
@@ -21,3 +24,19 @@ def registration(request):
         "access": str(refresh.access_token),
     }
     return response.Response(res, status.HTTP_201_CREATED)
+
+
+@decorators.api_view(["POST"])
+@decorators.permission_classes([IsOwner, ])
+def block_a_user(request):
+    if request.method == "POST":
+        user = request.user
+        if user.is_authenticated:
+            blocked_user = User.objects.get(pk=request.data['blockedId'])
+            if UserBlacklist.objects.filter(userId=user, blockedId=blocked_user).exists():
+                raise serializers.ValidationError(
+                    {"blockedUser": "User is already blocked."})
+            blocked_instance = UserBlacklist(userId=user, blockedId=blocked_user)
+            blocked_instance.save()
+            return response.Response('blocked_instance', status.HTTP_201_CREATED)
+    return response.Response({'key': 'value'}, status=status.HTTP_200_OK)

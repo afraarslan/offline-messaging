@@ -1,4 +1,6 @@
 from django.contrib import admin
+
+from jwtauth.models import UserBlacklist
 from .models import Message, UserMessage
 
 
@@ -9,4 +11,6 @@ class ProfileAdmin(admin.ModelAdmin):
 
 admin.site.register(Message, ProfileAdmin)
 admin.site.register(UserMessage)
+admin.site.register(UserBlacklist)
+
 
