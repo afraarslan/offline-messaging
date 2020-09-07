@@ -1,5 +1,7 @@
 from django.shortcuts import render
 from rest_framework import serializers, viewsets, response, decorators, exceptions, permissions, status, filters
+
+from jwtauth.models import UserBlacklist
 from .models import Message, UserMessage
 from .serializers import MessageSerializer, UserMessageSerializer, UserMessageCreateSerializer
 from django.contrib.auth.models import User
@@ -48,11 +50,15 @@ def send_message(request):
         user = request.user
         if user.is_authenticated:
             username = request.data['to_user']
-            print(username, " is username ")
             if not User.objects.filter(username=username).exists():
                 raise serializers.ValidationError(
-                    {"userid": "User should be exist."})
+                    {"userid": "User should be exist."}
+                )
             toUser = User.objects.get(username=username)
+            if UserBlacklist.objects.filter(userId=toUser, blockedId=user).exists():
+                raise serializers.ValidationError(
+                    {"user": "You are blocked. You cannot send a message."}
+                )
             newMessage = Message(content=request.data['text'])
             newMessage.save()
             data = {

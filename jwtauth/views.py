@@ -35,7 +35,8 @@ def block_a_user(request):
             blocked_user = User.objects.get(pk=request.data['blockedId'])
             if UserBlacklist.objects.filter(userId=user, blockedId=blocked_user).exists():
                 raise serializers.ValidationError(
-                    {"blockedUser": "User is already blocked."})
+                    {"blockedUser": "User is already blocked."}
+                )
             blocked_instance = UserBlacklist(userId=user, blockedId=blocked_user)
             blocked_instance.save()
             return response.Response('blocked_instance', status.HTTP_201_CREATED)
