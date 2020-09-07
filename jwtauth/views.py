@@ -15,25 +15,28 @@ from .serializers import UserCreateSerializer, UserSerializer
 @decorators.api_view(["POST"])
 @decorators.permission_classes([permissions.AllowAny])
 def registration(request):
-    serializer = UserCreateSerializer(data=request.data)
-    if not serializer.is_valid():
-        return response.Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
-    user = serializer.save()
-    update_last_login(None, user)
-    user_log = UserLog(
-        userId=user,
-        action="register"
-    )
-    user_log.save()
-    refresh = RefreshToken.for_user(user)
-    serializer = UserSerializer
-    serialized_user = serializer(user)
-    res = {
-        "user": serialized_user.data,
-        "refresh": str(refresh),
-        "access": str(refresh.access_token),
-    }
-    return response.Response(res, status.HTTP_201_CREATED)
+    if request.method == 'POST':
+        serializer = UserCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return response.Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
+        user = serializer.save()
+        update_last_login(None, user)
+        user_log = UserLog(
+            userId=user,
+            action="register"
+        )
+        user_log.save()
+        refresh = RefreshToken.for_user(user)
+        serializer = UserSerializer
+        serialized_user = serializer(user)
+        res = {
+            "user": serialized_user.data,
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        }
+        return response.Response(res, status.HTTP_201_CREATED)
+    return response.Response({'key': 'value'}, status=status.HTTP_200_OK)
+
 
 
 @decorators.api_view(["POST"])
