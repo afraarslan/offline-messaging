@@ -1,11 +1,12 @@
+from django.contrib.auth import authenticate
 from django.shortcuts import render
 from rest_framework import response, decorators, permissions, status, serializers
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth.models import User
-
+from django.contrib.auth.models import User, update_last_login
+from user_logging.models import UserLog
 from messaging.views import IsOwner
 from .models import UserBlacklist
-from .serializers import UserCreateSerializer
+from .serializers import UserCreateSerializer, UserSerializer
 
 
 # Create your views here.
@@ -18,12 +19,49 @@ def registration(request):
     if not serializer.is_valid():
         return response.Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
     user = serializer.save()
+    update_last_login(None, user)
+    user_log = UserLog(
+        userId=user,
+        action="register"
+    )
+    user_log.save()
     refresh = RefreshToken.for_user(user)
+    serializer = UserSerializer
+    serialized_user = serializer(user)
     res = {
+        "user": serialized_user.data,
         "refresh": str(refresh),
         "access": str(refresh.access_token),
     }
     return response.Response(res, status.HTTP_201_CREATED)
+
+
+@decorators.api_view(["POST"])
+@decorators.permission_classes([permissions.AllowAny])
+def login(request):
+    if request.method == "POST":
+        username = request.data['username']
+        password = request.data['password']
+        user = authenticate(username=username, password=password)
+        update_last_login(None, user)
+        serializer = UserSerializer
+        serialized_user = serializer(user)
+        if user is not None:
+            refresh = RefreshToken.for_user(user)
+            res = {
+                "user": serialized_user.data,
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+            }
+            user_log = UserLog(
+                userId=user,
+                action="login"
+            )
+            user_log.save()
+            return response.Response(res, status.HTTP_201_CREATED)
+        else:
+            response.Response({'user': 'Not authenticated'}, status=status.HTTP_200_OK)
+    return response.Response({'key': 'value'}, status=status.HTTP_200_OK)
 
 
 @decorators.api_view(["POST"])
@@ -39,5 +77,10 @@ def block_a_user(request):
                 )
             blocked_instance = UserBlacklist(userId=user, blockedId=blocked_user)
             blocked_instance.save()
+            user_log = UserLog(
+                userId=user,
+                action="block_user"
+            )
+            user_log.save()
             return response.Response('blocked_instance', status.HTTP_201_CREATED)
     return response.Response({'key': 'value'}, status=status.HTTP_200_OK)

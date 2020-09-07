@@ -4,9 +4,14 @@ from rest_framework import serializers
 User = get_user_model()
 
 
-class UserCreateSerializer(serializers.ModelSerializer):
-    email = serializers.CharField(style={"input_type": "email"}, required=True)
+class UserSerializer(serializers.ModelSerializer):
 
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'last_login', 'date_joined']
+
+
+class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(style={"input_type": "password"},
                                      write_only=True, required=True)
     password2 = serializers.CharField(
@@ -16,7 +21,6 @@ class UserCreateSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             "username",
-            "email",
             "password",
             "password2",
         ]
@@ -24,16 +28,12 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         username = validated_data["username"]
-        email = validated_data["email"]
         password = validated_data["password"]
         password2 = validated_data["password2"]
-        if email and User.objects.filter(email=email).exclude(username=username).exists():
-            raise serializers.ValidationError(
-                {"email": "Email addresses must be unique."})
         if password != password2:
             raise serializers.ValidationError(
                 {"password": "Passwords should be same."})
-        user = User(username=username, email=email)
+        user = User(username=username)
         user.set_password(password)
         user.save()
         return user
