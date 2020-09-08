@@ -38,32 +38,34 @@ def registration(request):
     return response.Response({'key': 'value'}, status=status.HTTP_200_OK)
 
 
-
 @decorators.api_view(["POST"])
 @decorators.permission_classes([permissions.AllowAny])
 def login(request):
     if request.method == "POST":
-        username = request.data['username']
-        password = request.data['password']
-        user = authenticate(username=username, password=password)
-        update_last_login(None, user)
-        serializer = UserSerializer
-        serialized_user = serializer(user)
-        if user is not None:
-            refresh = RefreshToken.for_user(user)
-            res = {
-                "user": serialized_user.data,
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
-            }
-            user_log = UserLog(
-                userId=user,
-                action="login"
-            )
-            user_log.save()
-            return response.Response(res, status.HTTP_201_CREATED)
+        if len(request.data) > 1:
+            username = request.data['username']
+            password = request.data['password']
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                update_last_login(None, user)
+                serializer = UserSerializer
+                serialized_user = serializer(user)
+                refresh = RefreshToken.for_user(user)
+                res = {
+                    "user": serialized_user.data,
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                }
+                user_log = UserLog(
+                    userId=user,
+                    action="login"
+                )
+                user_log.save()
+                return response.Response(res, status.HTTP_201_CREATED)
+            else:
+                return response.Response({'user': 'Not authenticated'}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            response.Response({'user': 'Not authenticated'}, status=status.HTTP_200_OK)
+            return response.Response({'request_data': 'Please fill the required fields'}, status=status.HTTP_400_BAD_REQUEST)
     return response.Response({'key': 'value'}, status=status.HTTP_200_OK)
 
 
@@ -73,17 +75,20 @@ def block_a_user(request):
     if request.method == "POST":
         user = request.user
         if user.is_authenticated:
-            blocked_user = User.objects.get(pk=request.data['blockedId'])
-            if UserBlacklist.objects.filter(userId=user, blockedId=blocked_user).exists():
-                raise serializers.ValidationError(
-                    {"blockedUser": "User is already blocked."}
+            if request.data:
+                blocked_user = User.objects.get(pk=request.data['blockedId'])
+                if UserBlacklist.objects.filter(userId=user, blockedId=blocked_user).exists():
+                    raise serializers.ValidationError(
+                        {"blockedUser": "User is already blocked."}
+                    )
+                blocked_instance = UserBlacklist(userId=user, blockedId=blocked_user)
+                blocked_instance.save()
+                user_log = UserLog(
+                    userId=user,
+                    action="block_user"
                 )
-            blocked_instance = UserBlacklist(userId=user, blockedId=blocked_user)
-            blocked_instance.save()
-            user_log = UserLog(
-                userId=user,
-                action="block_user"
-            )
-            user_log.save()
-            return response.Response('blocked_instance', status.HTTP_201_CREATED)
+                user_log.save()
+                return response.Response('blocked_instance', status.HTTP_201_CREATED)
+            else:
+                return response.Response({'blockedId': 'Please give a blockedId'}, status=status.HTTP_400_BAD_REQUEST)
     return response.Response({'key': 'value'}, status=status.HTTP_200_OK)
