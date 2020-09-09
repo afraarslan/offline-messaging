@@ -20,6 +20,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/messaging/', include('messaging.urls'), name='messaging'),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    path('api/jwtauth/', include('jwtauth.urls'), name='jwtauth'),  # new
+    path('api/authentication/', include('authentication.urls'), name='authentication'),
 
 ]

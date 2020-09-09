@@ -1,7 +1,6 @@
 from django.contrib import admin
-from jwtauth.models import UserBlacklist
+from authentication.models import UserBlacklist
 
-# Register your models here.
 
 admin.site.register(UserBlacklist)
 
