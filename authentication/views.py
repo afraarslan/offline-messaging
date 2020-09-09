@@ -60,7 +60,7 @@ def login(request):
 
         user = authenticate(username=username, password=password)
         if user is None:
-            return response_validation_error({"username or password is invalid"})
+            return response_validation_error({'user':"username or password is invalid"})
         else:
             update_last_login(None, user)
 

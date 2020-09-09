@@ -3,13 +3,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import UserBlacklist, User
 from django.urls import reverse, resolve
-
-from .serializers import UserSerializer, UserCreateSerializer
 from .views import registration, login, block_a_user
 from rest_framework import status
-from rest_framework.test import APITestCase, APIRequestFactory, APIClient
-
-
+from rest_framework.test import APIClient
 
 
 class TestUrls(TestCase):
@@ -85,7 +81,11 @@ class TestRegisterViews(TestCase):
             'password2': 'pass'
         }, format='json')
 
-        self.assertEqual(resp.data, {"username": ["A user with that username already exists."]})
+        self.assertEqual(resp.data, {
+            "username": [
+                "A user with that username already exists."
+            ]
+        })
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_passwords_mismatch(self):
@@ -95,7 +95,9 @@ class TestRegisterViews(TestCase):
             'password2': 'pass2'
         }, format='json')
 
-        self.assertEqual(resp.data, {"password": "Passwords should be same."})
+        self.assertEqual(resp.data, {
+            "password": "Passwords should be same."
+        })
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_correct_registration(self):
@@ -109,13 +111,11 @@ class TestRegisterViews(TestCase):
         self.assertTrue(len(resp.data), 3)
         self.assertEqual(resp.data['user']['username'], "example_kamil")
         self.assertTrue('access', 'refresh' in resp.data)
-        # self.assertTemplateUsed(response, 'search/search.html')
 
 
 class TestLoginViews(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.factory = APIRequestFactory()
         self.login_url = reverse('login')
 
         self.example_user = User(username='example_arif')
@@ -126,24 +126,25 @@ class TestLoginViews(TestCase):
         resp = self.client.post(self.login_url, {}, format='json')
 
         self.assertEqual(resp.data, {
-                "username": [
-                    "This field is required."
-                ],
-                "password": [
-                    "This field is required."
-                ]
-            })
-        
+            "username": [
+                "This field may not be null."
+            ],
+            "password": [
+                "This field may not be null."
+            ]
+        })
+
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_login_with_wrong_username(self):
         resp = self.client.post(self.login_url, {
             'username': 'wrong',
             'password': 'pass'
-        }, format='json')
+        }, format='multipart')
 
-        self.assertEqual(resp.data, {'user': 'Not authenticated'})
-        
+        self.assertEqual(resp.data, {
+            "user": "username or password is invalid"
+        })
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_login_with_wrong_password(self):
@@ -152,8 +153,9 @@ class TestLoginViews(TestCase):
             'password': 'wrong'
         }, format='json')
 
-        self.assertEqual(resp.data, {'user': 'Not authenticated'})
-        
+        self.assertEqual(resp.data, {
+            "user": "username or password is invalid"
+        })
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_login_with_correct_credentials(self):
@@ -161,11 +163,11 @@ class TestLoginViews(TestCase):
             'username': "example_arif",
             'password': "pass"
         }, format='json')
-
+        print(resp.data)
         self.assertEqual(len(resp.data), 3)
         self.assertEqual(resp.data['user']['username'], "example_arif")
         self.assertTrue('access', 'refresh' in resp.data)
-        
+
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
 
@@ -192,18 +194,22 @@ class TestBlockUserViews(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access_token)
         resp = self.client.post(self.block_user_url, {}, format='json')
 
-        self.assertEqual(resp.data, {'blocked_user': "This field is required."})
+        self.assertEqual(resp.data, {
+            "blocked_id": [
+                "This field is required."
+            ]
+        })
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_block_a_user(self):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access_token)
+        print('ok')
         resp = self.client.post(self.block_user_url, {
             'blocked_id': self.example_user2.pk
         }, format='json')
-
+        print('done')
         self.assertEqual(resp.data, 'blocked_instance')
-
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
     def test_block_non_existed_user(self):
@@ -212,7 +218,11 @@ class TestBlockUserViews(TestCase):
             'blocked_id': 10000
         }, format='json')
 
-        self.assertEqual(resp.data, {'blocked_user': 'There is no such id.'})
+        self.assertEqual(resp.data, {
+            "blocked_id": [
+                "not exists"
+            ]
+        })
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -223,11 +233,15 @@ class TestBlockUserViews(TestCase):
         )
         blocked_instance.save()
 
+        print('done')
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access_token)
         resp = self.client.post(self.block_user_url, {
-            'blocked_user': self.example_user2.pk
+            'blocked_id': self.example_user2.pk
         }, format='json')
 
-        self.assertEqual(resp.data, {"blockedUser": "User is already blocked."})
+        print('blocked_id')
+        self.assertEqual(resp.data, {
+            "blocked_id": "already blocked"
+        })
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)

@@ -65,8 +65,15 @@ def send_message(request):
         user = request.user
 
         to_user_id = request.POST.get('to_user_id')
+        text = request.POST.get('text')
+        if not to_user_id:
+            return response_validation_error({'to_user_id': ["This field is required."]})
+
+        if not text:
+            return response_validation_error({'text': ["This field is required."]})
+
         if not User.objects.filter(pk=to_user_id).exists():
-            return response_validation_error({'to_user_id': ["not exists"]})
+            return response_validation_error({'to_user_id': ["User should be exist."]})
 
         if UserBlacklist.objects.filter(user=to_user_id, blocked_user=user.id).exists():
             return response_validation_error({'to_user_id': ["you are blocked. you cannot send a message"]})
