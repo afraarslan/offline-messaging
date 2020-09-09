@@ -76,7 +76,7 @@ def send_message(request):
             return response_validation_error({'to_user_id': ["User should be exist."]})
 
         if UserBlacklist.objects.filter(user=to_user_id, blocked_user=user.id).exists():
-            return response_validation_error({'to_user_id': ["you are blocked. you cannot send a message"]})
+            return response_validation_error({'to_user_id': ["You are blocked. You cannot send a message."]})
 
         data = {
             'from_user': user.id,
@@ -100,4 +100,4 @@ def send_message(request):
             return response_validation_error(log_serializer.errors)
         log_serializer.save()
 
-        return response_created({'userMessage'})
+        return response_created({'success'})

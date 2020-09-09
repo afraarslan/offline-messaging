@@ -37,25 +37,31 @@ class TestGetInboxViews(TestCase):
         self.response = self.client.post('/api/authentication/token/', {
             'username': "example_arif",
             'password': "pass"
-        }, format='json')
+        }, format='multipart')
 
         self.refresh = self.response.data['refresh']
         self.access = self.response.data['access']
 
-    def test_get_inbox_with_no_credentials(self):
-        resp = self.client.get(self.get_inbox_url, {}, format='json')
-
-        print(resp.data)
-        self.assertEqual(resp.data, {'key': 'value'})
-        self.assertEqual(resp.resolver_match.func, get_inbox_messages)
-        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_get_inbox_with_credentials(self):
+    def test_get_inbox_before_have_message(self):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access)
-        resp = self.client.get(self.get_inbox_url, {}, format='json')
-
+        resp = self.client.get(self.get_inbox_url, {}, format='multipart')
         self.assertEqual(resp.data, [])
-        self.assertEqual(resp.resolver_match.func, get_inbox_messages)
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+
+    def test_get_inbox_when_have_message(self):
+        text = "it is a new message."
+        newMessage = Message(content=text)
+        newMessage.save()
+
+        userMessage = UserMessage(from_user=self.example_user,
+                                  to_user=self.example_user,
+                                  message=newMessage)
+        userMessage.save()
+
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access)
+        resp = self.client.get(self.get_inbox_url, {}, format='multipart')
+
+        self.assertEqual(resp.data[0]['message']['content'], text)
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
 
@@ -70,38 +76,33 @@ class TestGetOutboxViews(TestCase):
         self.response = self.client.post('/api/authentication/token/', {
             'username': "example_arif",
             'password': "pass"
-        }, format='json')
+        }, format='multipart')
 
         self.refresh = self.response.data['refresh']
         self.access = self.response.data['access']
 
-    def test_get_sent_box_with_no_credentials(self):
-        resp = self.client.get(self.get_outbox_url, {}, format='json')
-        self.assertEqual(resp.data, {'key': 'value'})
-        self.assertEqual(resp.resolver_match.func, get_outbox_messages, )
-        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_get_sent_box_before_have_message(self):
+    def test_get_outbox_before_have_message(self):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access)
-        resp = self.client.get(self.get_outbox_url, {}, format='json')
+        resp = self.client.get(self.get_outbox_url, {}, format='multipart')
+
         self.assertEqual(resp.data, [])
-        self.assertEqual(resp.resolver_match.func, get_outbox_messages, )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
-    def test_get_sent_box_when_have_message(self):
+    def test_get_outbox_when_have_message(self):
         text = "it is a new message."
         newMessage = Message(content=text)
         newMessage.save()
+
         userMessage = UserMessage(from_user=self.example_user,
                                   to_user=self.example_user,
                                   message=newMessage)
         userMessage.save()
 
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access)
-        resp = self.client.get(self.get_outbox_url, {}, format='json')
+        resp = self.client.get(self.get_outbox_url, {}, format='multipart')
 
         self.assertEqual(resp.data[0]['message']['content'], text)
-        self.assertEqual(resp.resolver_match.func, get_outbox_messages, )
+
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
 
@@ -117,7 +118,7 @@ class TestSendMessageViews(TestCase):
         self.response = self.client.post('/api/authentication/token/', {
             'username': "example_arif",
             'password': "pass"
-        }, format='json')
+        }, format='multipart')
         self.refresh = self.response.data['refresh']
         self.access = self.response.data['access']
 
@@ -126,17 +127,11 @@ class TestSendMessageViews(TestCase):
         self.example_user2.save()
         UserLog.objects.all().delete()
 
-    def test_send_message_with_no_credentials(self):
-        resp = self.client.post(self.send_url, {}, format='json')
-
-        self.assertEqual(resp.data, {'user': 'Not authenticated'})
-        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
-
     def test_send_message_with_no_to_user_id(self):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access)
         resp = self.client.post(self.send_url, {
             'text': 'hey'
-        }, format='json')
+        }, format='multipart')
 
         self.assertEqual(resp.data, {
             "to_user_id": [
@@ -149,7 +144,7 @@ class TestSendMessageViews(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access)
         resp = self.client.post(self.send_url, {
             'to_user_id': 2
-        }, format='json')
+        }, format='multipart')
 
         self.assertEqual(resp.data, {
             "text": [
@@ -163,7 +158,7 @@ class TestSendMessageViews(TestCase):
         resp = self.client.post(self.send_url, {
             'to_user_id': 10000,
             'text': 'is there anyone?'
-        }, format='json')
+        }, format='multipart')
 
         self.assertEqual(resp.data, {
             "to_user_id": [
@@ -177,21 +172,27 @@ class TestSendMessageViews(TestCase):
         resp = self.client.post(self.send_url, {
             'to_user_id': self.example_user2.pk,
             'text': 'hello'
-        }, format='json')
+        }, format='multipart')
 
-        self.assertEqual(resp.data, 1)
+        self.assertEqual(resp.data, {'success'})
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
     def test_send_message_after_user_blocked(self):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access)
+
         blocked_instance = UserBlacklist(user=self.example_user2, blocked_user=self.example_user1)
         blocked_instance.save()
+
         resp = self.client.post(self.send_url, {
             'to_user_id': self.example_user2.pk,
             'text': 'is there anyone?'
-        }, format='json')
+        }, format='multipart')
 
-        self.assertEqual(resp.data, {"user": "You are blocked. You cannot send a message."})
+        self.assertEqual(resp.data, {
+            "to_user_id": [
+                "You are blocked. You cannot send a message."
+            ]
+        })
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_user_logs_after_send_message(self):
@@ -199,10 +200,11 @@ class TestSendMessageViews(TestCase):
         resp = self.client.post(self.send_url, {
             'to_user_id': self.example_user2.pk,
             'text': 'hello'
-        }, format='json')
+        }, format='multipart')
 
-        userLog = UserLog.objects.first()
-        self.assertEqual(resp.data, 1)
+        user_log = UserLog.objects.first()
+
+        self.assertEqual(user_log.action, 'send')
+        self.assertEqual(user_log.user.id, self.example_user1.pk)
+        self.assertEqual(resp.data, {'success'})
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(userLog.action, 'send_message')
-        self.assertEqual(userLog.user.id, self.example_user1.pk)

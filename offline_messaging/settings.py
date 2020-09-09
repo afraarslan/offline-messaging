@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 import os
 from pathlib import Path
 import datetime
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -38,12 +39,23 @@ INSTALLED_APPS = [
     'rest_framework',
     'authentication',
     'messaging',
-    'user_logging'
+    'user_logging',
+    'django_nose',
+]
+
+
+# Use nose to run all tests
+TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+
+# Tell nose to measure coverage on the 'foo' and 'bar' apps
+NOSE_ARGS = [
+    '--with-coverage',
+    '--cover-package=messaging,authentication',
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        "rest_framework.authentication.SessionAuthentication",        # new
+        "rest_framework.authentication.SessionAuthentication",  # new
         "rest_framework_simplejwt.authentication.JWTAuthentication",  # new
     ],
     'DEFAULT_PERMISSION_CLASSES': [

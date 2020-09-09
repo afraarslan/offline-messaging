@@ -1,6 +1,4 @@
 from django.test import TestCase
-from rest_framework_simplejwt.tokens import RefreshToken
-
 from .models import UserBlacklist, User
 from django.urls import reverse, resolve
 from .views import registration, login, block_a_user
@@ -31,7 +29,7 @@ class TestRegisterViews(TestCase):
         self.example_user.save()
 
     def test_with_no_data(self):
-        resp = self.client.post(self.register_url, {}, format='json')
+        resp = self.client.post(self.register_url, {}, format='multipart')
 
         self.assertEqual(resp.data, {
             "username": [
@@ -50,7 +48,7 @@ class TestRegisterViews(TestCase):
         resp = self.client.post(self.register_url, {
             'password': 'pass',
             'password2': 'pass'
-        }, format='json')
+        }, format='multipart')
 
         self.assertEqual(resp.data, {
             "username": [
@@ -62,7 +60,7 @@ class TestRegisterViews(TestCase):
     def test_with_no_password(self):
         resp = self.client.post(self.register_url, {
             'username': 'example_kamil',
-        }, format='json')
+        }, format='multipart')
 
         self.assertEqual(resp.data, {
             "password": [
@@ -79,7 +77,7 @@ class TestRegisterViews(TestCase):
             'username': 'example_arif',
             'password': 'pass',
             'password2': 'pass'
-        }, format='json')
+        }, format='multipart')
 
         self.assertEqual(resp.data, {
             "username": [
@@ -93,7 +91,7 @@ class TestRegisterViews(TestCase):
             'username': 'example_kamil',
             'password': 'pass',
             'password2': 'pass2'
-        }, format='json')
+        }, format='multipart')
 
         self.assertEqual(resp.data, {
             "password": "Passwords should be same."
@@ -105,7 +103,7 @@ class TestRegisterViews(TestCase):
             'username': 'example_kamil',
             'password': 'pass',
             'password2': 'pass'
-        }, format='json')
+        }, format='multipart')
 
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         self.assertTrue(len(resp.data), 3)
@@ -123,7 +121,7 @@ class TestLoginViews(TestCase):
         self.example_user.save()
 
     def test_login_with_no_data(self):
-        resp = self.client.post(self.login_url, {}, format='json')
+        resp = self.client.post(self.login_url, {}, format='multipart')
 
         self.assertEqual(resp.data, {
             "username": [
@@ -151,7 +149,7 @@ class TestLoginViews(TestCase):
         resp = self.client.post(self.login_url, {
             'username': 'example_arif',
             'password': 'wrong'
-        }, format='json')
+        }, format='multipart')
 
         self.assertEqual(resp.data, {
             "user": "username or password is invalid"
@@ -162,7 +160,7 @@ class TestLoginViews(TestCase):
         resp = self.client.post(self.login_url, {
             'username': "example_arif",
             'password': "pass"
-        }, format='json')
+        }, format='multipart')
         print(resp.data)
         self.assertEqual(len(resp.data), 3)
         self.assertEqual(resp.data['user']['username'], "example_arif")
@@ -187,12 +185,12 @@ class TestBlockUserViews(TestCase):
         self.response = self.client.post('/api/authentication/token/', {
             'username': "example_arif",
             'password': "pass"
-        }, format='json')
+        }, format='multipart')
         self.access_token = self.response.data['access']
 
     def test_block_a_user_with_no_data(self):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access_token)
-        resp = self.client.post(self.block_user_url, {}, format='json')
+        resp = self.client.post(self.block_user_url, {}, format='multipart')
 
         self.assertEqual(resp.data, {
             "blocked_id": [
@@ -204,26 +202,25 @@ class TestBlockUserViews(TestCase):
 
     def test_block_a_user(self):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access_token)
-        print('ok')
+
         resp = self.client.post(self.block_user_url, {
             'blocked_id': self.example_user2.pk
-        }, format='json')
-        print('done')
-        self.assertEqual(resp.data, 'blocked_instance')
+        }, format='multipart')
+
+        self.assertEqual(resp.data, {'blocked_instance'})
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
     def test_block_non_existed_user(self):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access_token)
         resp = self.client.post(self.block_user_url, {
             'blocked_id': 10000
-        }, format='json')
+        }, format='multipart')
 
         self.assertEqual(resp.data, {
             "blocked_id": [
                 "not exists"
             ]
         })
-
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_block_already_blocked_user(self):
@@ -237,7 +234,7 @@ class TestBlockUserViews(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access_token)
         resp = self.client.post(self.block_user_url, {
             'blocked_id': self.example_user2.pk
-        }, format='json')
+        }, format='multipart')
 
         print('blocked_id')
         self.assertEqual(resp.data, {

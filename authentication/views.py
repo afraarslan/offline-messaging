@@ -113,4 +113,4 @@ def block_a_user(request):
             return response_validation_error(log_serializer.errors)
         log_serializer.save()
 
-        return response_created({'blocked'})
+        return response_created({'blocked_instance'})
