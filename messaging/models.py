@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
-# Create your models here.
 class Message(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -14,7 +13,7 @@ class Message(models.Model):
 
 
 class UserMessage(models.Model):
-    messageId = models.ForeignKey(Message, on_delete=models.CASCADE)
-    fromId = models.ForeignKey(User, on_delete=models.CASCADE, related_name='from_user')
-    toId = models.ForeignKey(User, on_delete=models.CASCADE, related_name='to_user')
+    message = models.ForeignKey(Message, on_delete=models.CASCADE)
+    from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='from_user')
+    to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='to_user_id')
     is_deleted = models.BooleanField(default=False)

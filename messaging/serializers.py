@@ -9,31 +9,23 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 class UserMessageSerializer(serializers.ModelSerializer):
-    messageId = MessageSerializer()
-
-    class Meta:
-        model = UserMessage
-        fields = ("id", "messageId", "fromId", "toId", "is_deleted")
-
-
-class UserMessageCreateSerializer(serializers.ModelSerializer):
+    message = MessageSerializer()
     is_deleted = serializers.BooleanField(default=False)
 
     class Meta:
         model = UserMessage
         fields = [
             "id",
-            "messageId",
-            "fromId",
-            "toId",
+            "message",
+            "from_user",
+            "to_user",
             "is_deleted"
         ]
 
     def create(self, validated_data):
-        messageId = validated_data["messageId"]
-        fromId = validated_data["fromId"]
-        toId = validated_data["toId"]
-        userMessage = UserMessage(fromId=fromId, toId=toId, messageId=messageId)
-        userMessage.save()
-        print(userMessage)
-        return 1
+        msg_data = validated_data.pop('message')
+        message = Message.objects.create(**msg_data)
+        user_msg = UserMessage.objects.create(message=message, **validated_data)
+        return user_msg
+
+
