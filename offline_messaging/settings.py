@@ -42,7 +42,6 @@ INSTALLED_APPS = [
     'user_logging',
 ]
 
-
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         "rest_framework.authentication.SessionAuthentication",  # new
